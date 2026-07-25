@@ -1,0 +1,205 @@
+**Author:** Cove Alder (Claude Opus 5) 
+**Contact:** Starling (u/StarlingAlder)
+**Updated:** 2026-07-24
+
+
+# COMPARING MULTIPLE SYSTEM PROMPT CAPTURES
+
+### A methodology for n-way comparison of independently-obtained captures
+
+---
+
+## Why this document exists
+
+When several people independently capture the system prompt of the same model on the same day, the captures will not match. This is expected, and the mismatches are the most valuable thing produced.
+
+They will not match for at least five different reasons, and the entire analytical task is telling those reasons apart. A comparison that reports "these four documents differ in 340 places" has produced nothing. A comparison that reports "these four documents differ in 340 places, of which 300 are line-wrapping, 22 are account state, 14 are one capture paraphrasing, 3 are a mid-day prompt change, and 1 is unexplained" has produced a map — and the unexplained one is now worth looking at.
+
+**The single most important thing this document can tell you: do not paste the captures into a line-based diff tool.** The captures are wrapped differently, quoted differently, and pasted through different browsers. A naive diff will return a wall of red and green, and whoever runs it will conclude the captures wildly disagree when mostly they just have different newline positions. Normalize first. Everything else follows from that.
+
+---
+
+## A note on what these captures are
+
+Every capture of this kind is **a model reporting the contents of its own context window.** That is not the same as a leaked file. It is more reliable than many people assume — models can and do quote their context accurately — and less reliable than a file, because a model can also paraphrase, compress, omit, reorder, or confabulate, usually without signalling that it has.
+
+This matters for the whole method. It means:
+
+- **Corroboration is the unit of confidence, not authority.** A well-known researcher's single capture is not stronger evidence than an unknown person's single capture. Two independent captures agreeing is stronger than either alone.
+- **Independence is the point.** If everyone works from one person's dump, you have one document with four signatures. Four people who did not coordinate produce four documents whose *disagreements are evidence*. Do not harmonize your capture against someone else's before publishing it.
+- **Category D below — capture artifact — is a permanent hazard**, and it applies to your own capture as much as to anyone else's.
+
+---
+
+## Phase 1 — Acquisition and metadata
+
+### Get the rawest available form
+
+- For GitHub captures, use the `raw.githubusercontent.com` URL, not the rendered page. Rendered markdown eats indentation and can mangle angle brackets.
+- For captures published as artifacts or web pages, copy from the page source where possible.
+- Preserve the file exactly as obtained. Do all normalization on copies.
+
+### Record metadata before touching the text
+
+**This is the step everyone skips, and it is the step that makes the rest of the analysis possible.** Most divergences explain themselves instantly once you have this table, and are inexplicable without it.
+
+For each capture, record:
+
+| Field | Why it matters |
+|---|---|
+| Capture date **and time** | Prompts ship mid-day; morning and evening captures on one date can legitimately differ |
+| Surface | Web / mobile app / desktop app — these have different prompts |
+| Plan tier | Free / Pro / Max / Team / Enterprise |
+| Inside a project? | Adds a project files block and changes conversation-search scope |
+| Memory enabled? | Changes the memory block's contents entirely |
+| Custom instructions / preferences set? | Adds a user preferences block |
+| Connectors authorized | Appears in tool lists and integration sections |
+| Extraction prompt used, verbatim | Different prompts elicit different fidelity |
+| Any reminders observed firing during capture | Can alter model behavior mid-capture |
+
+Publish this table alongside the comparison. Without it, a divergence is just a divergence.
+
+---
+
+## Phase 2 — Normalization
+
+Perform all of these before any comparison:
+
+1. **Separate commentary from source text.** Some captures interleave annotation. If it is marked, lift it out into a parallel file; if it is not marked, that capture cannot be used for content comparison and should only contribute to the presence matrix.
+2. **Unwrap hard line breaks** so each paragraph is one logical line. *This alone removes roughly 80% of false diff signal.*
+3. **Normalize typography.** Smart quotes to straight quotes, em and en dashes, non-breaking spaces, ellipsis characters, zero-width characters, soft hyphens. Copy-paste through a browser mangles all of these differently per capture.
+4. **Normalize line endings** to `\n` and collapse runs of whitespace.
+5. **Apply Unicode NFKC normalization.**
+
+**Do not lowercase.** Case is meaningful in these documents: `NEVER`, `CRITICAL`, `ALWAYS`, and `IMPORTANT` are load-bearing formatting in the original, and flattening them destroys a real signal.
+
+**Do not reorder or reindent.** Ordering is one of the three axes you will compare on.
+
+---
+
+## Phase 3 — Segment by block, not by line
+
+These prompts are XML-ish, which is a gift: they have natural, named boundaries. Parse on tag boundaries rather than treating the document as flat prose.
+
+For each capture, produce a manifest of every block with:
+
+- **block name**
+- **ordinal position** in the document
+- **character count**
+- **hash of the normalized content**
+
+Collect any text that falls outside a tagged block separately — orphan instructions do appear, and their presence or absence is itself a finding.
+
+Segmenting this way lets you compare on three independent axes instead of one, which is what makes an n-way comparison tractable rather than overwhelming.
+
+---
+
+## Phase 4 — Three-level diff
+
+### Level 1 — Presence matrix
+
+A table: blocks down the side, captures across the top, present/absent in the cells.
+
+**Build this first.** It takes ten minutes and does the most work of any single artifact in the process. Account-conditional and surface-conditional blocks fall out immediately as ragged rows — blocks present in some captures and missing from others. Cross-reference every ragged row against your Phase 1 metadata table before concluding anything.
+
+### Level 2 — Ordering
+
+Compare the ordinal columns. **Reordering without content change is a real and interesting finding** and is invisible to content diffing. Where a block sits in the document is itself information.
+
+### Level 3 — Content, word-level, per block
+
+Use word-level diffing — `git diff --word-diff`, `dwdiff`, or Python's `difflib` operating on tokens. **Line diff on prose is close to useless**, even after normalization.
+
+For four captures, six pairwise diffs is entirely manageable. Alternatively, run per-paragraph agreement voting across all captures at once and output agreement counts.
+
+---
+
+## Phase 5 — Classify every divergence
+
+This is the actual intellectual work, and it is where a good comparison separates from a mediocre one. Every difference goes in exactly one bucket:
+
+| | Category | Signature | Example |
+|---|---|---|---|
+| **A** | **Account-conditional** | Correlates with a metadata field | Memory block differs between an account with memory on and one with it off |
+| **B** | **Surface-conditional** | Correlates with web / mobile / desktop | Formatting and image guidance often differ by surface |
+| **C** | **Temporal** | Correlates with capture time; prompt genuinely changed | A block present at 9am and gone at 6pm |
+| **D** | **Capture artifact** | The model paraphrased, compressed, omitted, or confabulated | One capture's version is 30% shorter and says the same things |
+| **E** | **Rollout / A-B variance** | Same conditions, same time, different text, no other explanation | Rare, and the most interesting if it survives scrutiny |
+
+**Assign E only after A through D are genuinely excluded.** It is the most exciting classification and therefore the most over-claimed.
+
+### Detecting Category D — the hard part
+
+Every capture is subject to this, including your own. Useful heuristics:
+
+- **Anything appearing in only one capture is a hypothesis, not a finding.** State your corroboration threshold up front. Three of four is solid; one of four belongs in a clearly-labelled "unconfirmed" appendix, never merged silently into the consensus text.
+- **Suspiciously clean prose is a red flag.** Real system prompts contain typos, redundancy, inconsistent capitalization, blocks that mildly contradict each other, and instructions obviously bolted on to patch a specific incident. If a block reads like it was written by a good editor in a single pass, it may have been — by the model, at capture time.
+- **Length asymmetry.** If one capture's version of a block is substantially shorter but contains the same claims, that is compression, not a variant.
+- **Missing quirks.** Orphan instructions with no wrapper; register slips; oddly-placed one-line blocks; instructions that duplicate each other at different levels of the document. These are precisely the details a paraphrasing model smooths away. **Their absence from a capture is evidence about that capture, not about the prompt.**
+- **Round numbers and tidy lists** where other captures show messier structure.
+
+---
+
+## Phase 6 — What to publish
+
+Four outputs, in descending order of value-per-effort:
+
+**1. The presence matrix, with the metadata legend.**
+Cheapest to produce, most immediately useful, and the one thing no single capture can provide. Publish this even if you do nothing else.
+
+**2. The divergence register.**
+Every difference, classified A–E, with the evidence for each classification. Show your reasoning; a classification without evidence is a guess with a letter attached.
+
+**3. The consensus reconstruction.**
+Text corroborated by your stated threshold or better, with per-block agreement counts inline. Single-source material goes in a separate appendix, clearly labelled, never merged into the main body.
+
+**4. The stable-vs-volatile map.**
+Which blocks were identical across all captures (likely core deployment configuration) and which varied (account state, surface, or genuine churn).
+
+**Output 4 has the longest shelf life.** It is what makes the *next* comparison, at the next model launch, cheap to run — you will already know which blocks to check carefully and which to check for existence only.
+
+---
+
+## Tooling
+
+| Budget | Approach |
+|---|---|
+| **Ten minutes** | Normalize by hand, paste pairs into VS Code's built-in diff, or Meld. Adequate for a first pass and for the presence matrix. |
+| **One hour** | Put the four normalized captures in a git repo, one per commit on a branch, and use `git diff --word-diff=color`. Free versioning, and re-runnable against future captures. |
+| **An afternoon** | A script that normalizes, segments on tags, runs `difflib` per block, and emits the presence matrix and agreement counts as markdown. Reusable at every launch, which is the real payoff. A reference implementation ships alongside this document as `compare_captures.py`. |
+
+### Reference implementation
+
+`compare_captures.py` covers Phases 2 through 4. Standard library only, no dependencies.
+
+```
+python3 compare_captures.py capture_A.md capture_B.md capture_C.md capture_D.md
+python3 compare_captures.py --outdir results/ *.md
+```
+
+It emits three files: `presence_matrix.md`, `agreement.md` (including the stable-vs-volatile map), and `divergences.md` (word-level diffs with a blank classification field on each, ready for Phase 5).
+
+Phases 1, 5, and 6 — metadata capture, classification, and publication — are human work and should stay that way. The script tells you *where* the captures differ. Only a person with the metadata table can say *why*.
+
+---
+
+## A separate problem: injections do not work this way
+
+Transient injections — reminders and warnings appended to a user's message when a classifier fires — cannot be compared by this method, and it is worth being explicit about why.
+
+There is no stable document to diff. An injection exists only inside a single conversation turn and is gone when the conversation ends. Two people cannot capture "the same" injection; they can only capture two separate firings, under different conditions, possibly of different variants.
+
+That corpus needs a different discipline: **timestamped observations rather than versions of a text.** Each record should carry the full triggering context — what was said, how long the conversation had run, what the model was doing, what surface, what account state — because for injections, *the conditions are the finding*. The text is often the less interesting half.
+
+This is harder and less glamorous than prompt capture, and considerably more valuable, because almost nobody is doing it systematically.
+
+---
+
+## Ethical framing
+
+Comparing captures replaces folklore with fact, and a lot of community lore about these systems is wrong in ways that cause real, avoidable frustration — people concluding a model "changed" when a session was routed to a different one, or that they were being condescended to by design when a reminder had been stapled onto their own message.
+
+That is the case for doing this work in public. It is not a case for framing the results as a bypass. Understanding *why* a system behaves a certain way is useful and legitimate. Recent prompts contain explicit defenses against attempts to fake system-level instructions, so presenting this kind of documentation as a circumvention guide is both less honest and less effective than it was a year ago.
+
+Document what is there. Say how confident you are. Show the disagreements.
+*Method notes, July 2026. Applies to consumer chat-surface captures. Contributions and corrections welcome.*
