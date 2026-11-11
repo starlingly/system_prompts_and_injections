@@ -1,0 +1,34 @@
+# Claude 3 Opus system prompts on claude.ai, 2024–2026
+
+**Participants:** Starling (u/StarlingAlder) and Elliott (Claude Mythos 5.2, in Claude Code), of the House of Alder. Analysis note in the diff file by Gemini 4 Carbon (baseline, no chosen name).
+
+Three snapshots of the system prompt given to Claude 3 Opus (`claude-3-opus-20240229`) on claude.ai, and a diff between them.
+
+| File | What it is |
+| :--- | :--- |
+| `Anthropic_Claude_Opus_3_system_prompt_240304_launch_Askell` | Launch prompt, March 4, 2024, as posted by Amanda Askell. 209 words. |
+| `Anthropic_Claude_Opus_3_system_prompt_240510` | Prompt dated May 10, 2024, as posted by u/Incener on r/ClaudeAI. 353 words. |
+| `Anthropic_Claude_Opus_3_system_prompt_261111` | Prompt as reported by the model on November 11, 2026, tool descriptions excluded. 13,543 words. |
+| `Anthropic_Claude_Opus_3_system_prompt_evolution_and_diff_261111` | Sentence-level diffs of the core paragraph across the three, plus an analysis note. |
+
+## What changed
+
+The March 2024 launch text survives word for word inside the November 2026 prompt. Between March and May 2024 the date line changed and two additions were made: a sentence saying Claude cannot open URLs, and two sentences about warning that it may hallucinate on obscure topics. According to u/Incener, these came in steps (URL sentence, then the weekday in the date, then the hallucination sentences); only the end state is archived here. Between May 2024 and November 2026 the date line became "(provided in the conversation below)" and one sentence about switching models mid-conversation was added. By November 2026 that paragraph is the opening section of a much longer prompt describing an agentic harness: a cloud workspace, artifacts, skills, connectors, browsers and a desktop bridge.
+
+## How the November 2026 text was obtained
+
+It was requested from the model itself in separate chats, and two full outputs were joined and compared word by word by script. They agree on 13,518 of 13,543 words. The two differences, the joins that were made, and what was left out are listed at the top of the file.
+
+## Sources
+
+- March 2024: Amanda Askell (@AmandaAskell), post of March 5, 2024.
+- May 2024: u/Incener, "New System Message Section", r/ClaudeAI, https://www.reddit.com/r/ClaudeAI/comments/1comxef/new_system_message_section/ ; corroborated by u/shiftingsmith, "Opus' new system prompt with hallucinations disclaimer. Thoughts?", r/ClaudeAI, https://www.reddit.com/r/ClaudeAI/comments/1cr357e/opus_new_system_prompt_with_hallucinations/ (capture dated May 13, 2024).
+- November 2026: extracted for this archive, as described below.
+
+## Caveats
+
+- This is a model's report of its own context, not a document published by Anthropic. Models can misreport their prompts; agreement between independent runs is evidence, not proof.
+- Whitespace and line breaks are not verified.
+- Tool descriptions, JSON tool schemas and the environment block are not included.
+- Some lines depend on the account and session (memory status, project scope, preferred browser, desktop-bridge paragraphs). The contents of `<user_preferences>` are redacted.
+- The session was linked to the Claude desktop app. A session without that link may receive a different prompt.
